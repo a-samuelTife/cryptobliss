@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CryptoBliss — Crypto Sentiment Platform</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── NAVBAR ─────────────────────────────────────── -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="navbar-logo">₿</div>
+      <div>
+        <div class="navbar-title">Crypto<span>Bliss</span></div>
+        <div class="navbar-subtitle">Sentiment Platform</div>
+      </div>
+    </a>
+    <div style="font-size:13px; color:#848E9C;">
+      Powered by Amazon Comprehend 🤖
+    </div>
+  </nav>
+
+  <!-- ── HERO ───────────────────────────────────────── -->
+  <div class="hero">
+    <div class="container">
+      <h1>Crypto <span>Sentiment</span> Market</h1>
+      <p>
+        Real community reviews analyzed by AWS AI. 
+        See what the market truly feels about each coin.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── STATS BAR ──────────────────────────────────── -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-label">Total Coins</div>
+      <div class="stat-value" id="totalCoins">20</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Total Reviews</div>
+      <div class="stat-value" id="totalReviews">—</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Positive Sentiment</div>
+      <div class="stat-value" id="positiveCount" 
+           style="color:#0ECB81">—</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Negative Sentiment</div>
+      <div class="stat-value" id="negativeCount" 
+           style="color:#F6465D">—</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">AI Engine</div>
+      <div class="stat-value" style="color:#F0B90B">
+        AWS Comprehend
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MAIN CONTENT ───────────────────────────────── -->
+  <div class="container">
+    <div class="section-header">
+      <div class="section-title">
+        📊 Live Market & Sentiment
+      </div>
+    </div>
+
+    <!-- Coins table header -->
+    <div class="coins-table">
+      <div class="coins-table-header">
+        <span>#</span>
+        <span>Coin</span>
+        <span>Price</span>
+        <span>24h %</span>
+        <span class="hide-mobile">Market Cap</span>
+        <span class="hide-mobile">Volume</span>
+        <span>Sentiment</span>
+      </div>
+
+      <!-- Coins list — filled by JavaScript -->
+      <div id="coinsList">
+        <div class="loading">
+          <div class="spinner"></div>
+          <div>Loading market data...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FOOTER ─────────────────────────────────────── -->
+  <div class="footer">
+    <p>
+      CryptoBliss — Built with Node.js, AWS DynamoDB 
+      &amp; Amazon Comprehend |
+      <a href="https://github.com/a-samuelTife/cryptobliss" 
+         target="_blank">GitHub</a>
+    </p>
+    <p style="margin-top:6px; font-size:11px;">
+      ⚠️ Simulated prices only. Not financial advice.
+    </p>
+  </div>
+
+  <!-- ── JAVASCRIPT ─────────────────────────────────── -->
+  <script>
+    // API base URL
+    // When running locally we use localhost
+    // When deployed to AWS we'll update this to the
+    // actual API URL automatically
+    const API = 'http://localhost:3000';
+
+    // ── FORMAT HELPERS ──────────────────────────────
+    // Formats a number as currency: 67432.5 → $67,432.50
+    const formatPrice = (price) => {
+      if (price >= 1) {
+        return '$' + price.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      }
+      // For very small prices like $0.0389
+      return '$' + price.toFixed(4);
+    };
+
+    // Formats large numbers: 1320000000000 → $1.32T
+    const formatMarketCap = (cap) => '$' + cap;
+
+    // ── LOAD COINS ──────────────────────────────────
+    // Fetches all 20 coins from the API and renders them
+    const loadCoins = async () => {
+      try {
+        const response = await fetch(`${API}/api/coins`);
+        const data     = await response.json();
+
+        if (!data.success) throw new Error(data.message);
+
+        // Calculate stats for the stats bar
+        let totalReviews = 0;
+        let positiveCount = 0;
+        let negativeCount = 0;
+
+        data.data.forEach(coin => {
+          totalReviews  += coin.sentiment.total;
+          positiveCount += coin.sentiment.breakdown.POSITIVE;
+          negativeCount += coin.sentiment.breakdown.NEGATIVE;
+        });
+
+        // Update stats bar
+        document.getElementById('totalReviews').textContent = totalReviews;
+        document.getElementById('positiveCount').textContent = positiveCount;
+        document.getElementById('negativeCount').textContent = negativeCount;
+
+        // Render each coin as a row in the table
+        const html = data.data.map((coin, index) => `
+          <a href="coin.html?id=${coin.id}" class="coin-row">
+
+            <span class="coin-rank">${index + 1}</span>
+
+            <div class="coin-info">
+              <div class="coin-icon" 
+                   style="background:${coin.color}">
+                ${coin.symbol.substring(0, 3)}
+              </div>
+              <div>
+                <div class="coin-name">${coin.name}</div>
+                <div class="coin-symbol">${coin.symbol}</div>
+              </div>
+            </div>
+
+            <span class="coin-price">
+              ${formatPrice(coin.price)}
+            </span>
+
+            <span class="${coin.change24h >= 0 
+              ? 'change-positive' 
+              : 'change-negative'}">
+              ${coin.change24h >= 0 ? '+' : ''}${coin.change24h}%
+            </span>
+
+            <span class="hide-mobile" 
+                  style="color:#848E9C; font-size:14px;">
+              ${formatMarketCap(coin.marketCap)}
+            </span>
+
+            <span class="hide-mobile" 
+                  style="color:#848E9C; font-size:14px;">
+              $${coin.volume}
+            </span>
+
+            <span>
+              <span class="sentiment-badge 
+                sentiment-${coin.sentiment.dominant
+                  .replace(' ', '\\ ')}">
+                ${getSentimentEmoji(coin.sentiment.dominant)}
+                ${coin.sentiment.dominant === 'NO REVIEWS' 
+                  ? 'No Reviews' 
+                  : coin.sentiment.dominant}
+              </span>
+            </span>
+
+          </a>
+        `).join('');
+
+        document.getElementById('coinsList').innerHTML = html;
+
+      } catch (error) {
+        document.getElementById('coinsList').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <p>Failed to load coins. Is the API running?</p>
+            <p style="font-size:12px; margin-top:8px;">
+              ${error.message}
+            </p>
+          </div>
+        `;
+      }
+    };
+
+    // Returns emoji for each sentiment type
+    const getSentimentEmoji = (sentiment) => {
+      const emojis = {
+        'POSITIVE':   '😊',
+        'NEGATIVE':   '😞',
+        'NEUTRAL':    '😐',
+        'MIXED':      '🤔',
+        'NO REVIEWS': '💬'
+      };
+      return emojis[sentiment] || '💬';
+    };
+
+    // Load coins when page opens
+    loadCoins();
+  </script>
+
+</body>
+</html>

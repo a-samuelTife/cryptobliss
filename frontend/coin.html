@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CryptoBliss — Coin Detail</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── NAVBAR ─────────────────────────────────────── -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="navbar-logo">₿</div>
+      <div>
+        <div class="navbar-title">Crypto<span>Bliss</span></div>
+        <div class="navbar-subtitle">Sentiment Platform</div>
+      </div>
+    </a>
+    <div style="font-size:13px; color:#848E9C;">
+      Powered by Amazon Comprehend 🤖
+    </div>
+  </nav>
+
+  <!-- ── MAIN CONTENT ───────────────────────────────── -->
+  <div class="container">
+
+    <!-- Back button -->
+    <a href="index.html" class="back-btn">
+      ← Back to Market
+    </a>
+
+    <!-- Coin header — filled by JavaScript -->
+    <div id="coinHeader">
+      <div class="loading">
+        <div class="spinner"></div>
+        <div>Loading coin data...</div>
+      </div>
+    </div>
+
+    <!-- Sentiment overview — filled by JavaScript -->
+    <div id="sentimentOverview"></div>
+
+    <!-- Review form -->
+    <div class="review-form">
+      <div class="form-title">✍️ Write a Review</div>
+      <p style="color:#848E9C; font-size:13px; margin-bottom:20px;">
+        Your review will be instantly analyzed by 
+        Amazon Comprehend AI
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Your Name (optional)</label>
+        <input 
+          type="text" 
+          id="reviewerName" 
+          class="form-input" 
+          placeholder="Anonymous"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Your Review *</label>
+        <textarea 
+          id="reviewText" 
+          class="form-textarea" 
+          placeholder="Share your thoughts about this coin..."
+          rows="4"
+        ></textarea>
+        <div style="font-size:11px; color:#848E9C; margin-top:4px;">
+          Minimum 10 characters. AI will analyze your sentiment.
+        </div>
+      </div>
+
+      <button 
+        class="btn-submit" 
+        id="submitReview" 
+        onclick="submitReview()">
+        🤖 Analyze &amp; Submit Review
+      </button>
+    </div>
+
+    <!-- Reviews list — filled by JavaScript -->
+    <div class="reviews-section">
+      <div class="form-title">💬 Community Reviews</div>
+      <div id="reviewsList">
+        <div class="loading">
+          <div class="spinner"></div>
+          <div>Loading reviews...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── FOOTER ─────────────────────────────────────── -->
+  <div class="footer">
+    <p>
+      CryptoBliss — Built with Node.js, AWS DynamoDB 
+      &amp; Amazon Comprehend |
+      <a href="https://github.com/a-samuelTife/cryptobliss"
+         target="_blank">GitHub</a>
+    </p>
+    <p style="margin-top:6px; font-size:11px;">
+      ⚠️ Simulated prices only. Not financial advice.
+    </p>
+  </div>
+
+  <!-- ── RESULT MODAL ───────────────────────────────── -->
+  <!-- Shows after a review is submitted with AI result -->
+  <div id="modalOverlay" class="modal-overlay" 
+       style="display:none;">
+    <div class="modal">
+      <div class="modal-title">🤖 AI Analysis Complete!</div>
+      <div class="modal-subtitle">
+        Amazon Comprehend has analyzed your review
+      </div>
+      <div class="modal-result">
+        <div class="modal-sentiment" id="modalEmoji"></div>
+        <div class="modal-sentiment-label" 
+             id="modalSentiment"></div>
+        <div class="modal-confidence" 
+             id="modalConfidence"></div>
+      </div>
+      <div style="font-size:13px; color:#848E9C; 
+                  text-align:center;">
+        Your review has been saved to AWS DynamoDB
+      </div>
+      <button class="modal-close" onclick="closeModal()">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- ── JAVASCRIPT ─────────────────────────────────── -->
+  <script>
+    const API = 'http://localhost:3000';
+
+    // Get coin ID from URL
+    // When you click Bitcoin the URL becomes:
+    // coin.html?id=bitcoin
+    // URLSearchParams reads that ?id=bitcoin part
+    const params = new URLSearchParams(window.location.search);
+    const coinId = params.get('id');
+
+    // If no coin ID in URL, go back to market page
+    if (!coinId) window.location.href = 'index.html';
+
+    // Store coin data globally so other functions can use it
+    let currentCoin = null;
+
+    // ── FORMAT HELPERS ──────────────────────────────
+    const formatPrice = (price) => {
+      if (price >= 1) {
+        return '$' + price.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      }
+      return '$' + price.toFixed(4);
+    };
+
+    const getSentimentEmoji = (sentiment) => {
+      const emojis = {
+        'POSITIVE':   '😊',
+        'NEGATIVE':   '😞',
+        'NEUTRAL':    '😐',
+        'MIXED':      '🤔',
+        'NO REVIEWS': '💬'
+      };
+      return emojis[sentiment] || '💬';
+    };
+
+    const getSentimentColor = (sentiment) => {
+      const colors = {
+        'POSITIVE': '#0ECB81',
+        'NEGATIVE': '#F6465D',
+        'NEUTRAL':  '#F0B90B',
+        'MIXED':    '#A855F7',
+      };
+      return colors[sentiment] || '#848E9C';
+    };
+
+    const formatDate = (isoString) => {
+      return new Date(isoString).toLocaleDateString('en-US', {
+        year:  'numeric',
+        month: 'short',
+        day:   'numeric',
+        hour:  '2-digit',
+        minute:'2-digit'
+      });
+    };
+
+    // ── LOAD COIN DATA ──────────────────────────────
+    const loadCoin = async () => {
+      try {
+        const response = await fetch(`${API}/api/coins/${coinId}`);
+        const data     = await response.json();
+
+        if (!data.success) throw new Error(data.message);
+
+        currentCoin = data.data;
+
+        // Update page title
+        document.title = `CryptoBliss — ${currentCoin.name}`;
+
+        // Render coin header
+        const change = currentCoin.change24h;
+        document.getElementById('coinHeader').innerHTML = `
+          <div class="coin-detail-header">
+            <div class="coin-detail-top">
+              <div class="coin-detail-icon" 
+                   style="background:${currentCoin.color}">
+                ${currentCoin.symbol.substring(0, 3)}
+              </div>
+              <div>
+                <div class="coin-detail-name">
+                  ${currentCoin.name}
+                </div>
+                <div class="coin-detail-symbol">
+                  ${currentCoin.symbol}
+                </div>
+              </div>
+            </div>
+
+            <div class="coin-detail-price">
+              ${formatPrice(currentCoin.price)}
+              <span style="font-size:18px; 
+                ${change >= 0 
+                  ? 'color:#0ECB81' 
+                  : 'color:#F6465D'}">
+                ${change >= 0 ? '▲' : '▼'} 
+                ${Math.abs(change)}%
+              </span>
+            </div>
+
+            <p class="coin-detail-desc">
+              ${currentCoin.description}
+            </p>
+
+            <div class="action-buttons">
+              <button class="btn btn-buy" 
+                onclick="handleTransaction('BUY')">
+                Buy ${currentCoin.symbol}
+              </button>
+              <button class="btn btn-sell" 
+                onclick="handleTransaction('SELL')">
+                Sell ${currentCoin.symbol}
+              </button>
+            </div>
+          </div>
+        `;
+
+        // Load sentiment overview and reviews
+        loadSentimentOverview(currentCoin.sentiment);
+        loadReviews();
+
+      } catch (error) {
+        document.getElementById('coinHeader').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <p>Failed to load coin. ${error.message}</p>
+          </div>
+        `;
+      }
+    };
+
+    // ── SENTIMENT OVERVIEW ──────────────────────────
+    const loadSentimentOverview = (sentiment) => {
+      const { breakdown, total, dominant } = sentiment;
+
+      // Calculate percentage for each sentiment bar
+      const pct = (count) => total > 0 
+        ? Math.round((count / total) * 100) 
+        : 0;
+
+      document.getElementById('sentimentOverview').innerHTML =`
+        <div class="sentiment-overview">
+          <div style="display:flex; justify-content:space-between;
+                      align-items:center;">
+            <div class="form-title">
+              📊 Community Sentiment
+            </div>
+            <span class="sentiment-badge 
+              sentiment-${dominant.replace(' ', '\\ ')}">
+              ${getSentimentEmoji(dominant)}
+              ${dominant === 'NO REVIEWS' 
+                ? 'No Reviews Yet' 
+                : dominant}
+            </span>
+          </div>
+          <div style="font-size:13px; color:#848E9C; 
+                      margin-top:4px;">
+            Based on ${total} review${total !== 1 ? 's' : ''}
+          </div>
+
+          <div class="sentiment-bars">
+            ${renderBar('Positive', breakdown.POSITIVE, 
+              total, '#0ECB81')}
+            ${renderBar('Negative', breakdown.NEGATIVE, 
+              total, '#F6465D')}
+            ${renderBar('Neutral',  breakdown.NEUTRAL,  
+              total, '#F0B90B')}
+            ${renderBar('Mixed',    breakdown.MIXED,    
+              total, '#A855F7')}
+          </div>
+        </div>
+      `;
+    };
+
+    const renderBar = (label, count, total, color) => {
+      const pct = total > 0 
+        ? Math.round((count / total) * 100) 
+        : 0;
+      return `
+        <div class="sentiment-bar-row">
+          <span class="sentiment-bar-label">${label}</span>
+          <div class="sentiment-bar-track">
+            <div class="sentiment-bar-fill" 
+                 style="width:${pct}%; background:${color}">
+            </div>
+          </div>
+          <span class="sentiment-bar-count" 
+                style="color:${color}">${count}</span>
+        </div>
+      `;
+    };
+
+    // ── LOAD REVIEWS ────────────────────────────────
+    const loadReviews = async () => {
+      try {
+        const response = await fetch(
+          `${API}/api/reviews/${coinId}`
+        );
+        const data = await response.json();
+
+        if (data.data.length === 0) {
+          document.getElementById('reviewsList').innerHTML =`
+            <div class="empty-state">
+              <div class="empty-state-icon">💬</div>
+              <p>No reviews yet. Be the first to review!</p>
+            </div>
+          `;
+          return;
+        }
+
+        const html = data.data.map(review => `
+          <div class="review-card">
+            <div class="review-header">
+              <span class="reviewer-name">
+                👤 ${review.reviewerName}
+              </span>
+              <span class="review-date">
+                ${formatDate(review.createdAt)}
+              </span>
+            </div>
+            <p class="review-text">${review.reviewText}</p>
+            <div class="review-footer">
+              <span class="sentiment-badge 
+                sentiment-${review.sentiment}">
+                ${getSentimentEmoji(review.sentiment)}
+                ${review.sentiment}
+              </span>
+              <span class="review-confidence">
+                ${review.dominantScore} confidence
+              </span>
+            </div>
+          </div>
+        `).join('');
+
+        document.getElementById('reviewsList').innerHTML = html;
+
+      } catch (error) {
+        document.getElementById('reviewsList').innerHTML = `
+          <div class="empty-state">
+            <p>Failed to load reviews.</p>
+          </div>
+        `;
+      }
+    };
+
+    // ── SUBMIT REVIEW ────────────────────────────────
+    const submitReview = async () => {
+      const reviewText   = document.getElementById(
+        'reviewText').value.trim();
+      const reviewerName = document.getElementById(
+        'reviewerName').value.trim();
+
+      if (reviewText.length < 10) {
+        alert('Review must be at least 10 characters!');
+        return;
+      }
+
+      const btn = document.getElementById('submitReview');
+      btn.disabled    = true;
+      btn.textContent = '🤖 Analyzing with AWS Comprehend...';
+
+      try {
+        const response = await fetch(`${API}/api/reviews`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            coinId,
+            coinName:     currentCoin.name,
+            reviewText,
+            reviewerName: reviewerName || 'Anonymous'
+          })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) throw new Error(data.message);
+
+        // Show the AI result in a modal popup
+        showModal(data.data);
+
+        // Clear the form
+        document.getElementById('reviewText').value   = '';
+        document.getElementById('reviewerName').value = '';
+
+        // Reload reviews and coin data to show new review
+        loadReviews();
+        loadCoin();
+
+      } catch (error) {
+        alert('Failed to submit review: ' + error.message);
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = '🤖 Analyze & Submit Review';
+      }
+    };
+
+    // ── HANDLE TRANSACTION ───────────────────────────
+    // Shows a prompt asking for feedback after buy/sell
+    const handleTransaction = (action) => {
+      const feedback = prompt(
+        `You ${action === 'BUY' ? 'bought' : 'sold'} ` +
+        `${currentCoin.symbol}! 🎉\n\n` +
+        `Leave a quick feedback about your experience:`
+      );
+
+      if (!feedback || feedback.trim().length < 10) return;
+
+      submitFeedback(action, feedback.trim());
+    };
+
+    const submitFeedback = async (action, feedbackText) => {
+      try {
+        const response = await fetch(`${API}/api/feedback`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            coinId,
+            coinName:    currentCoin.name,
+            action,
+            feedbackText,
+            userName:    'Anonymous'
+          })
+        });
+
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message);
+
+        showModal(data.data);
+
+      } catch (error) {
+        alert('Failed to submit feedback: ' + error.message);
+      }
+    };
+
+    // ── MODAL ────────────────────────────────────────
+    const showModal = (data) => {
+      document.getElementById('modalEmoji').textContent =
+        data.display.emoji;
+      document.getElementById('modalSentiment').textContent =
+        data.display.label;
+      document.getElementById('modalSentiment').style.color =
+        data.display.color;
+      document.getElementById('modalConfidence').textContent =
+        `Confidence: ${data.dominantScore}`;
+      document.getElementById('modalOverlay').style.display =
+        'flex';
+    };
+
+    const closeModal = () => {
+      document.getElementById('modalOverlay').style.display =
+        'none';
+    };
+
+    // Load everything when page opens
+    loadCoin();
+  </script>
+
+</body>
+</html>
