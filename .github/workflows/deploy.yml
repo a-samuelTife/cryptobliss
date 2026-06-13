@@ -1,0 +1,165 @@
+# ── .github/workflows/deploy.yml ───────────────────────
+# CryptoBliss CI/CD Pipeline
+# Triggers on every push to main branch
+#
+# What it does automatically:
+# 1. Builds Docker image of the backend API
+# 2. Pushes image to AWS ECR
+# 3. Deploys new container to ECS Fargate
+# 4. Uploads frontend files to S3
+# 5. Clears CloudFront cache so users see latest version
+# ───────────────────────────────────────────────────────
+
+name: Deploy CryptoBliss
+
+# ── TRIGGER ────────────────────────────────────────────
+# Run this workflow on every push to main branch
+on:
+  push:
+    branches:
+      - main
+
+# ── JOBS ───────────────────────────────────────────────
+# A workflow has one or more jobs
+# Jobs run on GitHub's servers (free!)
+jobs:
+
+  # ── JOB 1: DEPLOY BACKEND ────────────────────────────
+  deploy-backend:
+    name: Build and Deploy API
+    runs-on: ubuntu-latest
+    # runs-on = which OS GitHub uses to run this job
+    # ubuntu-latest = free Linux server from GitHub
+
+    steps:
+
+      # ── STEP 1: GET THE CODE ─────────────────────────
+      # Downloads your repository code onto
+      # the GitHub Actions runner machine
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── STEP 2: CONFIGURE AWS ────────────────────────
+      # Sets up AWS credentials on the runner
+      # Uses the secrets we added to GitHub
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      # ── STEP 3: LOGIN TO ECR ─────────────────────────
+      # Authenticates Docker with your ECR registry
+      # So it can push images there
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ── STEP 4: BUILD AND PUSH DOCKER IMAGE ──────────
+      # Builds the Docker image from backend/Dockerfile
+      # Tags it with both the git SHA and latest
+      # Git SHA = unique identifier for this exact commit
+      # e.g. abc1234 — great for tracking which code
+      # is running in production
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG:     ${{ github.sha }}
+        run: |
+          echo "Building Docker image..."
+          docker build -t $ECR_REGISTRY/cryptobliss-api:$IMAGE_TAG \
+                       -t $ECR_REGISTRY/cryptobliss-api:latest \
+                       ./backend
+
+          echo "Pushing to ECR..."
+          docker push $ECR_REGISTRY/cryptobliss-api:$IMAGE_TAG
+          docker push $ECR_REGISTRY/cryptobliss-api:latest
+
+          echo "Image pushed successfully!"
+
+      # ── STEP 5: DEPLOY TO ECS ────────────────────────
+      # Tells ECS Fargate to pull the new image
+      # and replace the running container
+      # --force-new-deployment = start fresh deployment
+      - name: Deploy to ECS Fargate
+        run: |
+          echo "Deploying to ECS..."
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER }} \
+            --service ${{ secrets.ECS_SERVICE }} \
+            --force-new-deployment \
+            --region ${{ secrets.AWS_REGION }}
+
+          echo "Deployment triggered successfully!"
+
+      # ── STEP 6: WAIT FOR DEPLOYMENT ──────────────────
+      # Waits until ECS confirms the new container
+      # is healthy and running before finishing
+      # Timeout = 5 minutes
+      - name: Wait for ECS deployment
+        run: |
+          echo "Waiting for ECS service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ secrets.ECS_CLUSTER }} \
+            --services ${{ secrets.ECS_SERVICE }} \
+            --region ${{ secrets.AWS_REGION }}
+
+          echo "ECS deployment complete!"
+
+  # ── JOB 2: DEPLOY FRONTEND ───────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend to S3
+    runs-on: ubuntu-latest
+
+    # This job runs AFTER deploy-backend succeeds
+    # No point updating frontend if backend failed
+    needs: deploy-backend
+
+    steps:
+
+      # ── STEP 1: GET THE CODE ─────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── STEP 2: CONFIGURE AWS ────────────────────────
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      # ── STEP 3: UPLOAD TO S3 ─────────────────────────
+      # Syncs your frontend folder to the S3 bucket
+      # --delete removes old files no longer in frontend/
+      - name: Upload frontend to S3
+        run: |
+          echo "Uploading frontend to S3..."
+          aws s3 sync frontend/ \
+            s3://${{ secrets.S3_BUCKET }} \
+            --delete
+
+          echo "Frontend uploaded!"
+
+      # ── STEP 4: CLEAR CLOUDFRONT CACHE ───────────────
+      # After uploading new files to S3, CloudFront
+      # still serves old cached versions to users
+      # Invalidation tells CloudFront to fetch fresh
+      # files from S3 on the next request
+      - name: Invalidate CloudFront cache
+        run: |
+          echo "Clearing CloudFront cache..."
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+          echo "Cache cleared! Users will see latest version."
+
+      # ── STEP 5: PRINT LIVE URL ────────────────────────
+      - name: Deployment complete
+        run: |
+          echo "======================================"
+          echo "✅ CryptoBliss deployed successfully!"
+          echo "🌍 Live at: https://djdat8fbrgx1w.cloudfront.net"
+          echo "======================================"
