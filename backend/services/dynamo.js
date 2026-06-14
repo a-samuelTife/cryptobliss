@@ -64,7 +64,6 @@ const getReviewsByCoin = async (coinId) => {
   );
 };
 
-// ── FUNCTION 3: GET ALL REVIEWS ─────────────────────────
 // Fetches every review across all coins
 // Used for the sentiment dashboard/overview page
 const getAllReviews = async () => {

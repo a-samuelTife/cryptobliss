@@ -1,10 +1,9 @@
-# ── terraform/main.tf ──────────────────────────────────
+# terraform/main.tf 
 # This is the entry point for all our infrastructure
 # It tells Terraform:
 # - Which cloud provider to use (AWS)
 # - Which region to deploy to
 # - Which Terraform version is required
-# ───────────────────────────────────────────────────────
 
 terraform {
   # Minimum Terraform version required
@@ -22,7 +21,7 @@ terraform {
   }
 }
 
-# ── CONFIGURE AWS PROVIDER ─────────────────────────────
+# CONFIGURE AWS PROVIDER 
 # Tell Terraform to use AWS and which region
 provider "aws" {
   region = var.aws_region
@@ -30,13 +29,13 @@ provider "aws" {
   # We never hardcode region — always use variables
 }
 
-# ── DATA SOURCE: CURRENT AWS ACCOUNT ───────────────────
+# DATA SOURCE: CURRENT AWS ACCOUNT
 # This asks AWS: "what account am I using?"
 # We use this to build ECR image URIs later
 # Format: 476639000650.dkr.ecr.us-east-1.amazonaws.com
 data "aws_caller_identity" "current" {}
 
-# ── DATA SOURCE: AVAILABLE AZs ─────────────────────────
+# DATA SOURCE: AVAILABLE AZs 
 # Asks AWS: "what availability zones exist in this region?"
 # We use this to spread resources across AZs
 # for high availability

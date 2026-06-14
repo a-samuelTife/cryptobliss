@@ -1,13 +1,6 @@
-# ── terraform/networking.tf ────────────────────────────
-# Creates all networking infrastructure:
-# VPC, Subnets, Internet Gateway, NAT Gateway,
-# Route Tables and their associations
-#
-# Think of this like building the roads and highways
-# before placing any buildings on them
-# ───────────────────────────────────────────────────────
 
-# ── VPC ────────────────────────────────────────────────
+
+# VPC 
 # Virtual Private Cloud — our private network on AWS
 # Everything we create lives inside this VPC
 resource "aws_vpc" "main" {
@@ -24,7 +17,7 @@ resource "aws_vpc" "main" {
   }
 }
 
-# ── INTERNET GATEWAY ───────────────────────────────────
+# INTERNET GATEWAY 
 # The door between our VPC and the internet
 # Without this nothing in our VPC can reach the internet
 resource "aws_internet_gateway" "main" {
@@ -39,7 +32,7 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-# ── PUBLIC SUBNETS ─────────────────────────────────────
+# PUBLIC SUBNETS 
 # Public subnets are connected to the Internet Gateway
 # Our Load Balancer lives here — it needs to be
 # reachable from the internet
@@ -64,7 +57,7 @@ resource "aws_subnet" "public" {
   }
 }
 
-# ── PRIVATE SUBNETS ────────────────────────────────────
+# PRIVATE SUBNETS 
 # Private subnets have NO direct internet access
 # Our ECS containers live here — safer, not exposed
 resource "aws_subnet" "private" {
@@ -79,7 +72,7 @@ resource "aws_subnet" "private" {
   }
 }
 
-# ── ELASTIC IP FOR NAT GATEWAY ─────────────────────────
+# ELASTIC IP FOR NAT GATEWAY 
 # A fixed public IP address for the NAT Gateway
 # NAT Gateway needs a static IP to send traffic out
 resource "aws_eip" "nat" {
@@ -94,7 +87,7 @@ resource "aws_eip" "nat" {
   # before creating this Elastic IP
 }
 
-# ── NAT GATEWAY ────────────────────────────────────────
+# NAT GATEWAY
 # Allows private subnet resources to reach the internet
 # for outbound requests (e.g. calling AWS Comprehend)
 # but blocks ALL inbound internet traffic
@@ -115,7 +108,7 @@ resource "aws_nat_gateway" "main" {
   depends_on = [aws_internet_gateway.main]
 }
 
-# ── PUBLIC ROUTE TABLE ─────────────────────────────────
+# PUBLIC ROUTE TABLE
 # Rules for how traffic flows in public subnets
 # This says: send all internet traffic to the IGW
 resource "aws_route_table" "public" {
@@ -134,7 +127,7 @@ resource "aws_route_table" "public" {
   }
 }
 
-# ── PRIVATE ROUTE TABLE ────────────────────────────────
+# PRIVATE ROUTE TABLE
 # Rules for how traffic flows in private subnets
 # This says: send internet traffic through NAT Gateway
 resource "aws_route_table" "private" {
@@ -152,7 +145,7 @@ resource "aws_route_table" "private" {
   }
 }
 
-# ── ROUTE TABLE ASSOCIATIONS ───────────────────────────
+# ROUTE TABLE ASSOCIATIONS 
 # Connect route tables to their subnets
 # Without this, subnets don't know which rules to follow
 

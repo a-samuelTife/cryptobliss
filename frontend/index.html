@@ -8,7 +8,7 @@
 </head>
 <body>
 
-  <!-- ── NAVBAR ─────────────────────────────────────── -->
+  
   <nav class="navbar">
     <a href="index.html" class="navbar-brand">
       <div class="navbar-logo">₿</div>
@@ -22,7 +22,6 @@
     </div>
   </nav>
 
-  <!-- ── HERO ───────────────────────────────────────── -->
   <div class="hero">
     <div class="container">
       <h1>Crypto <span>Sentiment</span> Market</h1>
@@ -33,7 +32,6 @@
     </div>
   </div>
 
-  <!-- ── STATS BAR ──────────────────────────────────── -->
   <div class="stats-bar">
     <div class="stat-item">
       <div class="stat-label">Total Coins</div>
@@ -61,7 +59,7 @@
     </div>
   </div>
 
-  <!-- ── MAIN CONTENT ───────────────────────────────── -->
+
   <div class="container">
     <div class="section-header">
       <div class="section-title">
@@ -90,8 +88,6 @@
       </div>
     </div>
   </div>
-
-  <!-- ── FOOTER ─────────────────────────────────────── -->
   <div class="footer">
     <p>
       CryptoBliss — Built with Node.js, AWS DynamoDB 
@@ -104,7 +100,7 @@
     </p>
   </div>
 
-  <!-- ── JAVASCRIPT ─────────────────────────────────── -->
+ 
   <script>
     // API base URL
     // When running locally we use localhost
@@ -112,7 +108,7 @@
     // actual API URL automatically
     const API = 'https://djdat8fbrgx1w.cloudfront.net';
 
-    // ── FORMAT HELPERS ──────────────────────────────
+    
     // Formats a number as currency: 67432.5 → $67,432.50
     const formatPrice = (price) => {
       if (price >= 1) {
@@ -128,7 +124,7 @@
     // Formats large numbers: 1320000000000 → $1.32T
     const formatMarketCap = (cap) => '$' + cap;
 
-    // ── LOAD COINS ──────────────────────────────────
+    // LOAD COINS 
     // Fetches all 20 coins from the API and renders them
     const loadCoins = async () => {
       try {

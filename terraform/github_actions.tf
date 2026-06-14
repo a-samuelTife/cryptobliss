@@ -5,9 +5,8 @@
 # - Deploy to ECS
 # - Upload frontend files to S3
 # - Invalidate CloudFront cache
-# ───────────────────────────────────────────────────────
 
-# ── IAM USER FOR GITHUB ACTIONS ────────────────────────
+# IAM USER FOR GITHUB ACTIONS 
 # A dedicated user with only the permissions
 # GitHub Actions needs — nothing more
 resource "aws_iam_user" "github_actions" {
@@ -20,7 +19,7 @@ resource "aws_iam_user" "github_actions" {
   }
 }
 
-# ── IAM POLICY FOR GITHUB ACTIONS ─────────────────────
+# IAM POLICY FOR GITHUB ACTIONS 
 # Defines exactly what GitHub Actions is allowed to do
 resource "aws_iam_user_policy" "github_actions" {
   name = "${var.project_name}-github-actions-policy"
@@ -92,14 +91,14 @@ resource "aws_iam_user_policy" "github_actions" {
   })
 }
 
-# ── ACCESS KEYS ────────────────────────────────────────
+# ACCESS KEYS
 # Generates AWS access keys for the GitHub Actions user
 # We'll add these to GitHub repository secrets
 resource "aws_iam_access_key" "github_actions" {
   user = aws_iam_user.github_actions.name
 }
 
-# ── OUTPUTS FOR GITHUB SECRETS ─────────────────────────
+# OUTPUTS FOR GITHUB SECRETS 
 # After terraform apply these values get printed
 # Copy them into your GitHub repository secrets
 output "github_actions_access_key_id" {

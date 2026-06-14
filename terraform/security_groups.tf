@@ -1,14 +1,6 @@
-# ── terraform/security_groups.tf ───────────────────────
-# Security Groups are like firewalls for AWS resources
-# They control what traffic is ALLOWED in and out
-# Every resource needs a security group
-#
-# Two rules types:
-# ingress = incoming traffic (who can reach us)
-# egress  = outgoing traffic (where we can go)
-# ───────────────────────────────────────────────────────
 
-# ── LOAD BALANCER SECURITY GROUP ───────────────────────
+
+#  LOAD BALANCER SECURITY GROUP 
 # The Load Balancer sits in front of our API
 # It needs to accept HTTP traffic from the internet
 resource "aws_security_group" "alb" {
@@ -51,7 +43,7 @@ resource "aws_security_group" "alb" {
   }
 }
 
-# ── ECS SECURITY GROUP ──────────────────────────────────
+#  ECS SECURITY GROUP
 # Our API containers run behind the Load Balancer
 # They should ONLY accept traffic from the ALB
 # not directly from the internet — more secure

@@ -1,6 +1,3 @@
-# ── backend/Dockerfile ─────────────────────────────────
-# Packages our Node.js API into a Docker container
-# ───────────────────────────────────────────────────────
 
 # Use Node.js 18 Alpine — lightweight Linux base image
 FROM node:18-alpine

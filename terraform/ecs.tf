@@ -6,9 +6,8 @@
 # - Task Definition (how to run the container)
 # - Application Load Balancer (receives traffic)
 # - ECS Service (keeps container running)
-# ───────────────────────────────────────────────────────
 
-# ── IAM ROLE FOR ECS TASK EXECUTION ───────────────────
+# IAM ROLE FOR ECS TASK EXECUTION 
 # ECS needs permission to:
 # - Pull Docker images from ECR
 # - Write logs to CloudWatch
@@ -40,7 +39,7 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# ── IAM ROLE FOR ECS TASK ──────────────────────────────
+# IAM ROLE FOR ECS TASK
 # This role is for the APPLICATION itself
 # Our API needs permission to call:
 # - Amazon Comprehend (sentiment analysis)
@@ -100,7 +99,7 @@ resource "aws_iam_role_policy" "ecs_task" {
   })
 }
 
-# ── ECS CLUSTER ────────────────────────────────────────
+# ECS CLUSTER
 # A cluster is a logical grouping of ECS services
 # Think of it like a building that contains apartments
 # The cluster is the building, services are apartments
@@ -120,7 +119,7 @@ resource "aws_ecs_cluster" "main" {
   }
 }
 
-# ── CLOUDWATCH LOG GROUP ───────────────────────────────
+# CLOUDWATCH LOG GROUP 
 # Where our container logs will be stored
 # Every console.log() in our API appears here
 resource "aws_cloudwatch_log_group" "api" {
@@ -135,7 +134,7 @@ resource "aws_cloudwatch_log_group" "api" {
   }
 }
 
-# ── ECS TASK DEFINITION ────────────────────────────────
+# ECS TASK DEFINITION
 # Describes how to run our container:
 # - Which Docker image to use
 # - How much CPU and memory
@@ -209,7 +208,7 @@ resource "aws_ecs_task_definition" "api" {
   }
 }
 
-# ── APPLICATION LOAD BALANCER ──────────────────────────
+# APPLICATION LOAD BALANCER
 # Sits in front of our ECS containers
 # Receives all internet traffic and forwards to containers
 # Also provides a stable DNS name for our API
@@ -228,7 +227,7 @@ resource "aws_lb" "api" {
   }
 }
 
-# ── TARGET GROUP ───────────────────────────────────────
+# TARGET GROUP
 # Defines which containers receive traffic from the ALB
 # and how to check if they are healthy
 resource "aws_lb_target_group" "api" {
@@ -258,7 +257,7 @@ resource "aws_lb_target_group" "api" {
   }
 }
 
-# ── ALB LISTENER ───────────────────────────────────────
+# ALB LISTENER
 # Tells the ALB to listen on port 80
 # and forward traffic to our target group
 resource "aws_lb_listener" "api" {
@@ -272,7 +271,7 @@ resource "aws_lb_listener" "api" {
   }
 }
 
-# ── ECS SERVICE ────────────────────────────────────────
+# ECS SERVICE
 # Keeps our container running 24/7
 # If the container crashes ECS automatically
 # starts a new one

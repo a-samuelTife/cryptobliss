@@ -1,7 +1,6 @@
-# ── terraform/ecr.tf ───────────────────────────────────
+# terraform/ecr.tf
 # Creates the ECR repository where our Docker images
 # will be stored after GitHub Actions builds them
-# ───────────────────────────────────────────────────────
 
 resource "aws_ecr_repository" "api" {
   name                 = "${var.project_name}-api"
@@ -21,7 +20,7 @@ resource "aws_ecr_repository" "api" {
   }
 }
 
-# ── ECR LIFECYCLE POLICY ───────────────────────────────
+# ECR LIFECYCLE POLICY
 # Automatically delete old images to save storage costs
 # Keeps only the 5 most recent images
 # Old images pile up fast without this

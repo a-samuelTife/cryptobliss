@@ -24,5 +24,4 @@ cpu            = 256
 memory         = 512
 
 # S3 — must be globally unique
-# We add your account ID to make it unique
 s3_bucket_name = "cryptobliss-frontend-476639000650"

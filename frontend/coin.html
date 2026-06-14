@@ -8,7 +8,6 @@
 </head>
 <body>
 
-  <!-- ── NAVBAR ─────────────────────────────────────── -->
   <nav class="navbar">
     <a href="index.html" class="navbar-brand">
       <div class="navbar-logo">₿</div>
@@ -22,7 +21,7 @@
     </div>
   </nav>
 
-  <!-- ── MAIN CONTENT ───────────────────────────────── -->
+  
   <div class="container">
 
     <!-- Back button -->
@@ -93,7 +92,7 @@
 
   </div>
 
-  <!-- ── FOOTER ─────────────────────────────────────── -->
+  
   <div class="footer">
     <p>
       CryptoBliss — Built with Node.js, AWS DynamoDB 
@@ -106,9 +105,7 @@
     </p>
   </div>
 
-  <!-- ── RESULT MODAL ───────────────────────────────── -->
-  <!-- Shows after a review is submitted with AI result -->
-  <div id="modalOverlay" class="modal-overlay" 
+    <div id="modalOverlay" class="modal-overlay" 
        style="display:none;">
     <div class="modal">
       <div class="modal-title">🤖 AI Analysis Complete!</div>
@@ -132,7 +129,7 @@
     </div>
   </div>
 
-  <!-- ── JAVASCRIPT ─────────────────────────────────── -->
+  
   <script>
    const API = 'https://djdat8fbrgx1w.cloudfront.net';
 
@@ -149,7 +146,7 @@
     // Store coin data globally so other functions can use it
     let currentCoin = null;
 
-    // ── FORMAT HELPERS ──────────────────────────────
+    
     const formatPrice = (price) => {
       if (price >= 1) {
         return '$' + price.toLocaleString('en-US', {
@@ -191,7 +188,7 @@
       });
     };
 
-    // ── LOAD COIN DATA ──────────────────────────────
+    // LOAD COIN DATA 
     const loadCoin = async () => {
       try {
         const response = await fetch(`${API}/api/coins/${coinId}`);
@@ -265,7 +262,7 @@
       }
     };
 
-    // ── SENTIMENT OVERVIEW ──────────────────────────
+    // SENTIMENT OVERVIEW 
     const loadSentimentOverview = (sentiment) => {
       const { breakdown, total, dominant } = sentiment;
 
@@ -326,7 +323,7 @@
       `;
     };
 
-    // ── LOAD REVIEWS ────────────────────────────────
+    // LOAD REVIEWS 
     const loadReviews = async () => {
       try {
         const response = await fetch(
@@ -379,7 +376,7 @@
       }
     };
 
-    // ── SUBMIT REVIEW ────────────────────────────────
+    // SUBMIT REVIEW 
     const submitReview = async () => {
       const reviewText   = document.getElementById(
         'reviewText').value.trim();
@@ -430,7 +427,7 @@
       }
     };
 
-    // ── HANDLE TRANSACTION ───────────────────────────
+    // HANDLE TRANSACTION 
     // Shows a prompt asking for feedback after buy/sell
     const handleTransaction = (action) => {
       const feedback = prompt(
@@ -468,7 +465,7 @@
       }
     };
 
-    // ── MODAL ────────────────────────────────────────
+    //MODAL 
     const showModal = (data) => {
       document.getElementById('modalEmoji').textContent =
         data.display.emoji;

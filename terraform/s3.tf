@@ -1,11 +1,8 @@
-# ── terraform/s3.tf ────────────────────────────────────
-# Creates S3 bucket for frontend hosting and
-# CloudFront distribution to deliver it globally
-# Now includes API proxy — routes /api/* to the ALB
-# so everything goes through HTTPS via CloudFront
-# ───────────────────────────────────────────────────────
 
-# ── S3 BUCKET ──────────────────────────────────────────
+# Creates S3 bucket for frontend hosting and
+# CloudFront distribution to deliver it globally Now includes API proxy — routes /api/* to the ALB so everything goes through HTTPS via CloudFront
+
+# S3 BUCKET 
 resource "aws_s3_bucket" "frontend" {
   bucket = var.s3_bucket_name
 
@@ -15,7 +12,7 @@ resource "aws_s3_bucket" "frontend" {
   }
 }
 
-# ── BLOCK PUBLIC ACCESS ────────────────────────────────
+# BLOCK PUBLIC ACCESS 
 resource "aws_s3_bucket_public_access_block" "frontend" {
   bucket = aws_s3_bucket.frontend.id
 
@@ -25,7 +22,7 @@ resource "aws_s3_bucket_public_access_block" "frontend" {
   restrict_public_buckets = true
 }
 
-# ── S3 BUCKET VERSIONING ───────────────────────────────
+# S3 BUCKET VERSIONING
 resource "aws_s3_bucket_versioning" "frontend" {
   bucket = aws_s3_bucket.frontend.id
   versioning_configuration {
@@ -33,7 +30,7 @@ resource "aws_s3_bucket_versioning" "frontend" {
   }
 }
 
-# ── CLOUDFRONT ORIGIN ACCESS CONTROL ──────────────────
+# CLOUDFRONT ORIGIN ACCESS CONTROL 
 # Allows CloudFront to access our private S3 bucket
 resource "aws_cloudfront_origin_access_control" "frontend" {
   name                              = "${var.project_name}-oac"
@@ -42,7 +39,7 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
   signing_protocol                  = "sigv4"
 }
 
-# ── CLOUDFRONT DISTRIBUTION ────────────────────────────
+#  CLOUDFRONT DISTRIBUTION 
 # Now has TWO origins:
 # 1. S3 bucket — serves the frontend HTML/CSS/JS
 # 2. ALB — serves the API at /api/* and /health
@@ -50,7 +47,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   enabled             = true
   default_root_object = "index.html"
 
-  # ── ORIGIN 1: S3 BUCKET ──────────────────────────────
+  # ORIGIN 1: S3 BUCKET 
   # Serves frontend static files
   origin {
     domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
@@ -58,7 +55,7 @@ resource "aws_cloudfront_distribution" "frontend" {
     origin_access_control_id = aws_cloudfront_origin_access_control.frontend.id
   }
 
-  # ── ORIGIN 2: API LOAD BALANCER ───────────────────────
+  # ORIGIN 2: API LOAD BALANCER 
   # Serves API requests at /api/* and /health
   # This fixes the Mixed Content error by routing
   # API calls through HTTPS CloudFront instead of
@@ -78,7 +75,7 @@ resource "aws_cloudfront_distribution" "frontend" {
     }
   }
 
-  # ── CACHE BEHAVIOR 1: /api/* ──────────────────────────
+  # CACHE BEHAVIOR 1: /api/* 
   # Routes all API calls to the Load Balancer
   # Must be defined BEFORE default_cache_behavior
   # CloudFront checks ordered behaviors first
@@ -107,7 +104,7 @@ resource "aws_cloudfront_distribution" "frontend" {
     # API data changes with every review submitted
   }
 
-  # ── CACHE BEHAVIOR 2: /health ─────────────────────────
+  # CACHE BEHAVIOR 2: /health
   # Routes health check to the Load Balancer
   ordered_cache_behavior {
     path_pattern     = "/health"
@@ -128,7 +125,7 @@ resource "aws_cloudfront_distribution" "frontend" {
     max_ttl                = 0
   }
 
-  # ── DEFAULT CACHE BEHAVIOR: /* ────────────────────────
+  # DEFAULT CACHE BEHAVIOR: 
   # Everything else goes to S3 (frontend files)
   # This is the fallback for all other requests
   default_cache_behavior {
@@ -150,7 +147,6 @@ resource "aws_cloudfront_distribution" "frontend" {
     max_ttl     = 86400
   }
 
-  # ── ERROR HANDLING ────────────────────────────────────
   # Redirect 404 errors to index.html
   custom_error_response {
     error_code         = 404
@@ -158,14 +154,13 @@ resource "aws_cloudfront_distribution" "frontend" {
     response_page_path = "/index.html"
   }
 
-  # ── RESTRICTIONS ──────────────────────────────────────
   restrictions {
     geo_restriction {
       restriction_type = "none"
     }
   }
 
-  # ── SSL CERTIFICATE ───────────────────────────────────
+  #  SSL CERTIFICATE 
   viewer_certificate {
     cloudfront_default_certificate = true
   }
@@ -176,7 +171,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 }
 
-# ── S3 BUCKET POLICY ───────────────────────────────────
+# S3 BUCKET POLICY 
 # Allows CloudFront to read files from S3
 resource "aws_s3_bucket_policy" "frontend" {
   bucket = aws_s3_bucket.frontend.id

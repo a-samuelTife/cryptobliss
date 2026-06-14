@@ -1,11 +1,4 @@
-# ── terraform/variables.tf ─────────────────────────────
-# All input variables for our infrastructure
-# Think of variables like function parameters —
-# they make our Terraform code reusable and flexible
-# We define them here and set values in terraform.tfvars
-# ───────────────────────────────────────────────────────
 
-# ── PROJECT SETTINGS ───────────────────────────────────
 
 variable "aws_region" {
   description = "AWS region to deploy all resources"
@@ -28,7 +21,7 @@ variable "environment" {
   # Options: dev, staging, prod
 }
 
-# ── NETWORKING ─────────────────────────────────────────
+# NETWORKING
 
 variable "vpc_cidr" {
   description = "IP range for our VPC"
@@ -52,8 +45,7 @@ variable "private_subnet_cidrs" {
   default     = ["10.0.3.0/24", "10.0.4.0/24"]
 }
 
-# ── ECS SETTINGS ───────────────────────────────────────
-
+# ECS SETTINGS 
 variable "container_port" {
   description = "Port our API listens on"
   type        = number
@@ -84,8 +76,7 @@ variable "memory" {
   # 512 MB RAM for our container
 }
 
-# ── S3 SETTINGS ────────────────────────────────────────
-
+# S3 SETTINGS 
 variable "s3_bucket_name" {
   description = "Name of S3 bucket for frontend files"
   type        = string
