@@ -1,4 +1,4 @@
-# ── .github/workflows/deploy.yml ───────────────────────
+
 # CryptoBliss CI/CD Pipeline
 # Triggers on every push to main branch
 #
@@ -8,23 +8,22 @@
 # 3. Deploys new container to ECS Fargate
 # 4. Uploads frontend files to S3
 # 5. Clears CloudFront cache so users see latest version
-# ───────────────────────────────────────────────────────
 
 name: Deploy CryptoBliss
 
-# ── TRIGGER ────────────────────────────────────────────
+# TRIGGER 
 # Run this workflow on every push to main branch
 on:
   push:
     branches:
       - main
 
-# ── JOBS ───────────────────────────────────────────────
+# JOBS 
 # A workflow has one or more jobs
 # Jobs run on GitHub's servers (free!)
 jobs:
 
-  # ── JOB 1: DEPLOY BACKEND ────────────────────────────
+  # JOB 1: DEPLOY BACKEND 
   deploy-backend:
     name: Build and Deploy API
     runs-on: ubuntu-latest
@@ -33,13 +32,10 @@ jobs:
 
     steps:
 
-      # ── STEP 1: GET THE CODE ─────────────────────────
-      # Downloads your repository code onto
-      # the GitHub Actions runner machine
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ── STEP 2: CONFIGURE AWS ────────────────────────
+      # STEP 2: CONFIGURE AWS 
       # Sets up AWS credentials on the runner
       # Uses the secrets we added to GitHub
       - name: Configure AWS credentials
@@ -49,14 +45,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ secrets.AWS_REGION }}
 
-      # ── STEP 3: LOGIN TO ECR ─────────────────────────
+      # STEP 3: LOGIN TO ECR 
       # Authenticates Docker with your ECR registry
       # So it can push images there
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # ── STEP 4: BUILD AND PUSH DOCKER IMAGE ──────────
+      # STEP 4: BUILD AND PUSH DOCKER IMAGE 
       # Builds the Docker image from backend/Dockerfile
       # Tags it with both the git SHA and latest
       # Git SHA = unique identifier for this exact commit
@@ -78,7 +74,7 @@ jobs:
 
           echo "Image pushed successfully!"
 
-      # ── STEP 5: DEPLOY TO ECS ────────────────────────
+      # STEP 5: DEPLOY TO ECS 
       # Tells ECS Fargate to pull the new image
       # and replace the running container
       # --force-new-deployment = start fresh deployment
@@ -93,7 +89,7 @@ jobs:
 
           echo "Deployment triggered successfully!"
 
-      # ── STEP 6: WAIT FOR DEPLOYMENT ──────────────────
+      # STEP 6: WAIT FOR DEPLOYMENT 
       # Waits until ECS confirms the new container
       # is healthy and running before finishing
       # Timeout = 5 minutes
@@ -107,7 +103,7 @@ jobs:
 
           echo "ECS deployment complete!"
 
-  # ── JOB 2: DEPLOY FRONTEND ───────────────────────────
+  # JOB 2: DEPLOY FRONTEND 
   deploy-frontend:
     name: Deploy Frontend to S3
     runs-on: ubuntu-latest
@@ -118,11 +114,11 @@ jobs:
 
     steps:
 
-      # ── STEP 1: GET THE CODE ─────────────────────────
+      #  STEP 1: GET THE CODE
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ── STEP 2: CONFIGURE AWS ────────────────────────
+      # STEP 2: CONFIGURE AWS 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -130,7 +126,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ secrets.AWS_REGION }}
 
-      # ── STEP 3: UPLOAD TO S3 ─────────────────────────
+      # STEP 3: UPLOAD TO S3
       # Syncs your frontend folder to the S3 bucket
       # --delete removes old files no longer in frontend/
       - name: Upload frontend to S3
@@ -142,7 +138,7 @@ jobs:
 
           echo "Frontend uploaded!"
 
-      # ── STEP 4: CLEAR CLOUDFRONT CACHE ───────────────
+      # STEP 4: CLEAR CLOUDFRONT CACHE 
       # After uploading new files to S3, CloudFront
       # still serves old cached versions to users
       # Invalidation tells CloudFront to fetch fresh
@@ -156,7 +152,7 @@ jobs:
 
           echo "Cache cleared! Users will see latest version."
 
-      # ── STEP 5: PRINT LIVE URL ────────────────────────
+      # STEP 5: PRINT LIVE URL
       - name: Deployment complete
         run: |
           echo "======================================"
